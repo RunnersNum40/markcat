@@ -7,7 +7,7 @@ use std::process::exit;
 #[derive(Parser, Debug)]
 #[command(
     name = "markcat",
-    version = "0.1.0",
+    version = "0.1.1",
     author = "Ted Pinkerton",
     about = "Converts a project directory to markdown format"
 )]
@@ -17,6 +17,9 @@ struct Cli {
 
     #[arg(short = 'i', long)]
     ignore_gitignore: bool,
+
+    #[arg(short = 't', long)]
+    trim: bool,
 
     #[arg(short = 'w', long)]
     whitelist: Option<String>,
@@ -31,10 +34,11 @@ fn main() {
     if let Err(err) = process_directory(
         &args.path,
         args.ignore_gitignore,
+        args.trim,
         args.whitelist.as_deref(),
         args.blacklist.as_deref(),
     ) {
-        eprintln!("Error: {}", err);
+        eprintln!("Error: {err}");
         exit(1);
     }
 }
@@ -42,6 +46,7 @@ fn main() {
 fn process_directory(
     dir: &str,
     ignore_gitignore: bool,
+    trim: bool,
     whitelist: Option<&str>,
     blacklist: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -56,7 +61,7 @@ fn process_directory(
 
     for result in walker {
         let entry = result?;
-        if entry.file_type().map_or(false, |ft| ft.is_file()) {
+        if entry.file_type().is_some_and(|ft| ft.is_file()) {
             let path = entry.path();
 
             if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
@@ -72,20 +77,25 @@ fn process_directory(
                 }
             }
 
-            output_file_to_markdown(path)?;
+            output_file_to_markdown(path, trim)?;
         }
     }
 
     Ok(())
 }
 
-fn output_file_to_markdown(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+fn output_file_to_markdown(path: &Path, trim: bool) -> Result<(), Box<dyn std::error::Error>> {
     let content = fs::read_to_string(path)?;
+    let content_str = if trim {
+        content.trim()
+    } else {
+        content.as_str()
+    };
     let path_str = path.display().to_string();
     if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
-        println!("`{}`\n```{}\n{}\n```", path_str, extension, content);
+        println!("`{path_str}`\n```{extension}\n{content_str}\n```");
     } else {
-        println!("`{}`\n```\n{}\n```", path_str, content);
+        println!("`{path_str}`\n```\n{content_str}\n```");
     }
     Ok(())
 }

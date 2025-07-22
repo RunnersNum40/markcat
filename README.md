@@ -17,6 +17,7 @@
 
 - `-p, --path <DIR>`: Specify the directory to convert (defaults to the current directory).
 - `-i, --ignore-gitignore`: Ignore `.gitignore` rules during conversion.
+- `-t, --trim`: Trim leading and trailing whitespace from file contents.
 - `-w, --whitelist <EXTENSIONS>`: Comma-separated list of whitelisted file extensions (e.g., `rs,md,txt`).
 - `-b, --blacklist <EXTENSIONS>`: Comma-separated list of blacklisted file extensions (e.g., `log,tmp`).
 
