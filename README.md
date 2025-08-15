@@ -1,40 +1,51 @@
 # markcat
 
-`markcat` is a CLI tool that converts the contents of a project directory into a markdown-formatted representation, respecting `.gitignore` files by default. It allows you to specify whitelisted and blacklisted file types for output.
+Convert a project directory to markdown.
+Respects `.gitignore` by default.
+Filter by extension, exact filename, or files without extensions.
+Output to stdout or a file.
 
-## Features
+## Install
 
-- Converts directories and files into a structured markdown output.
-- Respects `.gitignore` files by default (can be disabled with a flag).
-- Whitelist or blacklist specific file extensions.
-- Simple and easy-to-use CLI interface.
+Run `cargo build --release` or `cargo install --path .`.
 
 ## Usage
 
-`markcat [OPTIONS]`
+`markcat [OPTIONS] [DIR]`
+`DIR` may be given positionally or via `-p/--path`. Default is `.`
 
 ### Options
 
-- `-p, --path <DIR>`: Specify the directory to convert (defaults to the current directory).
-- `-i, --ignore-gitignore`: Ignore `.gitignore` rules during conversion.
-- `-t, --trim`: Trim leading and trailing whitespace from file contents.
-- `-w, --whitelist <EXTENSIONS>`: Comma-separated list of whitelisted file extensions (e.g., `rs,md,txt`).
-- `-b, --blacklist <EXTENSIONS>`: Comma-separated list of blacklisted file extensions (e.g., `log,tmp`).
+- `-p, --path <DIR>` — Directory to convert. Positional `<DIR>` also supported
+- `-i, --ignore-gitignore` — Do not apply `.gitignore` or standard ignore filters
+- `-t, --trim` — Trim leading and trailing whitespace in file contents
+- `-w, --whitelist <ITEMS>` — Comma-separated allow-list
+- `-b, --blacklist <ITEMS>` — Comma-separated deny-list
+- `-o, --output <FILE>` — Write output to `<FILE>` instead of stdout (creates or truncates)
+
+## Filtering syntax
+
+`ITEMS` accepts:
+- Extensions (case-insensitive), with or without a leading dot. Examples: `rs`, `.md`, `txt`
+- Exact filenames (case-sensitive). Examples: `LICENSE`, `Makefile`, `Dockerfile`
+- The token `noext` to match files without an extension
+
+Whitelist passes if any item matches. Blacklist blocks if any item matches. If a whitelist is provided, non-matching files are skipped even if not blacklisted.
+
+## Output format
+
+For each file:
+1) Print the filepath in backticks, like `path/to/file`
+2) Then print a fenced code block in the markdown output. The fence language is the file’s extension if present; otherwise no language
+
+Example description: `src/main.rs` emits a path line followed by a Rust code fence; `LICENSE` emits a path line followed by a plain fence.
 
 ## Examples
 
-- Convert the current directory into a markdown tree:
-
-  `markcat`
-
-- Convert a specific directory into a markdown tree:
-
-  `markcat -p /path/to/directory`
-
-- Convert a directory into a markdown tree, ignoring `.gitignore` rules:
-
-  `markcat -i`
-
-- Convert a directory into a markdown tree, whitelisting specific file extensions:
-
-  `markcat -w rs,md,txt`
+- Default current directory: `markcat`
+- Specific directory: `markcat src/` or `markcat -p src/`
+- Ignore `.gitignore`: `markcat -i`
+- Only Rust, Markdown, plus exact `LICENSE`: `markcat -w rs,md,LICENSE`
+- Exclude logs and all extensionless files: `markcat -b log,noext`
+- Write to a file: `markcat -o out.md src/`
+- Trim contents: `markcat -t`
