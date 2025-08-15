@@ -7,7 +7,13 @@ Output to stdout or a file.
 
 ## Install
 
-Run `cargo build --release` or `cargo install --path .`.
+- **Arch Linux (AUR)**
+  `yay -S markcat` or `paru -S markcat`
+  Manual:
+  `git clone https://aur.archlinux.org/markcat.git && cd markcat && makepkg -si`
+
+- **Cargo (all platforms)**
+  `cargo install markcat`
 
 ## Usage
 
