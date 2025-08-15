@@ -8,8 +8,8 @@ use std::process::exit;
 
 #[derive(Parser, Debug)]
 #[command(
+    version,
     name = "markcat",
-    version = "1.1.0",
     author = "Ted Pinkerton",
     about = "Converts a project directory to markdown format"
 )]
