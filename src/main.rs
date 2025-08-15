@@ -154,9 +154,9 @@ fn process_directory<W: Write>(
     let blacklist_f = parse_filter(blacklist);
 
     let walker = if ignore_gitignore {
-        WalkBuilder::new(dir).build()
+        WalkBuilder::new(dir).standard_filters(false).build()
     } else {
-        WalkBuilder::new(dir).standard_filters(true).build()
+        WalkBuilder::new(dir).require_git(false).build()
     };
 
     for result in walker {
@@ -204,4 +204,3 @@ fn output_file_to_markdown<W: Write>(
     }
     Ok(())
 }
-
