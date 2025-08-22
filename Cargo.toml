@@ -1,8 +1,8 @@
 [package]
 name = "markcat"
-version = "1.1.1"
+version = "1.1.2"
 edition = "2021"
-author = "Ted Pinkerton"
+authors = ["Ted Pinkerton"]
 license = "MIT"
 description = "Convert a project directory to markdown"
 homepage = "https://github.com/RunnersNum40/markcat"

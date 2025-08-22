@@ -3,7 +3,7 @@ name: publish-to-crates-io
 on:
   push:
     tags:
-      - "v*.*.*"
+      - v[0-9]+.[0-9]+.[0-9]+
 
 permissions:
   contents: read
@@ -11,38 +11,22 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    container:
+      image: rust:latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Verify tag matches Cargo.toml version
-        run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF_NAME#v}"
-          VER=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[0].version')
-          test "$TAG" = "$VER" || { echo "Tag v$TAG does not match Cargo.toml $VER"; exit 1; }
+      - name: Install toml-cli
+        run: cargo install toml-cli
 
-      - name: Skip if version already on crates.io
-        id: exists
-        run: |
-          set -euo pipefail
-          NAME=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[0].name')
-          VER=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[0].version')
-          MAX=$(curl -sSf "https://crates.io/api/v1/crates/$NAME" | jq -r '.crate.max_version')
-          if [ "$MAX" = "$VER" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "version $VER already on crates.io"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Check version
+        run: test "v$(toml get -r Cargo.toml package.version)" = "${{ github.ref_name }}"
 
-      - name: Package dry run
-        if: steps.exists.outputs.skip == 'false'
+      - name: Publish dry-run
         run: cargo publish --dry-run
 
       - name: Publish
-        if: steps.exists.outputs.skip == 'false' && env.ACT != 'true'
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish
