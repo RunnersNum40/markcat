@@ -187,7 +187,8 @@ fn output_file_to_markdown<W: Write>(
     trim: bool,
     out: &mut W,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let content = fs::read_to_string(path)?;
+    let content = fs::read_to_string(path)
+        .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
     let content_str = if trim {
         content.trim()
     } else {
