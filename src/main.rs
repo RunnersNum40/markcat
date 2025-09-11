@@ -256,7 +256,9 @@ fn output_file_to_markdown<W: Write>(
     } else {
         content.as_str()
     };
-    let path_str = path.display().to_string();
+
+    let display_path = path.strip_prefix(".").unwrap_or(path);
+    let path_str = display_path.display();
 
     if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
         writeln!(out, "`{path_str}`")?;
