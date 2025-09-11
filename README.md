@@ -22,12 +22,14 @@ Output to stdout or a file.
 
 ### Options
 
-- `-p, --path <DIR>` — Directory to convert. Positional `<DIR>` also supported
-- `-i, --ignore-gitignore` — Do not apply `.gitignore` or standard ignore filters
-- `-t, --trim` — Trim leading and trailing whitespace in file contents
-- `-w, --whitelist <ITEMS>` — Comma-separated allow-list
-- `-b, --blacklist <ITEMS>` — Comma-separated deny-list
-- `-o, --output <FILE>` — Write output to `<FILE>` instead of stdout (creates or truncates)
+- `-p, --path <DIR>` - Directory to convert. Positional `<DIR>` also supported
+- `-i, --ignore-gitignore` - Do not apply `.gitignore` or standard ignore filters
+- `-t, --trim` - Trim leading and trailing whitespace in file contents
+- `-w, --whitelist <ITEMS>` - Comma-separated allow-list
+- `-b, --blacklist <ITEMS>` - Comma-separated deny-list
+- `-g, --glob <GLOB>` - Only include files matching the given glob pattern (can be used multiple times)
+- `--glob-file` - Read glob patterns from a file (one per line)
+- `-o, --output <FILE>` - Write output to `<FILE>` instead of stdout (creates or truncates)
 
 ## Filtering syntax
 
