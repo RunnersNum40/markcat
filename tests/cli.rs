@@ -135,3 +135,29 @@ fn trim_flag_trims_contents() {
     assert!(trimmed_s.contains("\nhi\n"));
     assert!(!trimmed_s.contains("  hi  "));
 }
+
+#[test]
+fn glob_filters_directories_and_files() {
+    let tmp = assert_fs::TempDir::new().unwrap();
+    tmp.child("src/lib.rs").write_str("mod x;\n").unwrap();
+    tmp.child("src/x/mod.rs").write_str("// x\n").unwrap();
+    tmp.child("target/out.txt").write_str("ignored\n").unwrap();
+
+    let dir = tmp.path().to_str().unwrap();
+
+    Command::cargo_bin("markcat")
+        .unwrap()
+        .args(["-g", "src/**,!src/**/x/**", dir])
+        .assert()
+        .success()
+        .stdout(contains("src/lib.rs"))
+        .stdout(is_match("src/x/mod\\.rs").unwrap().not())
+        .stdout(is_match("target/out\\.txt").unwrap().not());
+
+    Command::cargo_bin("markcat")
+        .unwrap()
+        .args(["-g", "!target/", dir])
+        .assert()
+        .success()
+        .stdout(is_match("target/out\\.txt").unwrap().not());
+}

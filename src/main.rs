@@ -1,4 +1,5 @@
 use clap::Parser;
+use ignore::overrides::OverrideBuilder;
 use ignore::WalkBuilder;
 use std::collections::HashSet;
 use std::fs::{self, File};
@@ -67,6 +68,22 @@ struct Cli {
         help = "Write output to FILE instead of stdout (creates or truncates)"
     )]
     output: Option<String>,
+
+    #[arg(
+        short = 'g',
+        long = "glob",
+        value_name = "GLOB",
+        value_delimiter = ',',
+        help = "Gitignore-style glob. Repeat or comma-separate. Prefix with '!' to exclude (e.g., 'src/**,!target/', '!**/*.md')"
+    )]
+    globs: Vec<String>,
+
+    #[arg(
+        long = "glob-file",
+        value_name = "PATH",
+        help = "Read additional globs from PATH (one per line; '#' starts a comment)"
+    )]
+    glob_file: Option<String>,
 }
 
 #[derive(Default)]
@@ -74,6 +91,17 @@ struct Filter {
     exts_lower: HashSet<String>,
     names: HashSet<String>,
     noext: bool,
+}
+
+#[derive(Debug)]
+struct RunConfig {
+    dir: String,
+    ignore_gitignore: bool,
+    trim: bool,
+    whitelist: Option<String>,
+    blacklist: Option<String>,
+    globs: Vec<String>,
+    glob_file: Option<String>,
 }
 
 fn main() {
@@ -86,6 +114,8 @@ fn main() {
         whitelist,
         blacklist,
         output,
+        globs,
+        glob_file,
     } = args;
 
     let dir = path.or(path_pos).unwrap_or_else(|| ".".into());
@@ -98,14 +128,17 @@ fn main() {
         Box::new(io::stdout())
     };
 
-    if let Err(err) = process_directory(
-        &dir,
+    let cfg = RunConfig {
+        dir,
         ignore_gitignore,
         trim,
-        whitelist.as_deref(),
-        blacklist.as_deref(),
-        &mut boxed_out,
-    ) {
+        whitelist,
+        blacklist,
+        globs,
+        glob_file,
+    };
+
+    if let Err(err) = process_directory(&cfg, &mut boxed_out) {
         eprintln!("Error: {err}");
         exit(1);
     }
@@ -142,22 +175,51 @@ fn matches_filter(path: &Path, f: &Filter) -> bool {
     ext_ok || name_ok || noext_ok
 }
 
+fn build_overrides(
+    root: &str,
+    globs: &[String],
+    glob_file: Option<&str>,
+) -> Result<ignore::overrides::Override, Box<dyn std::error::Error>> {
+    let mut ob = OverrideBuilder::new(root);
+
+    for g in globs {
+        ob.add(g)?;
+    }
+
+    if let Some(path) = glob_file {
+        let data = fs::read_to_string(path)?;
+        for raw in data.lines() {
+            let line = raw.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            ob.add(line)?;
+        }
+    }
+
+    Ok(ob.build()?)
+}
+
 fn process_directory<W: Write>(
-    dir: &str,
-    ignore_gitignore: bool,
-    trim: bool,
-    whitelist: Option<&str>,
-    blacklist: Option<&str>,
+    cfg: &RunConfig,
     out: &mut W,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let whitelist_f = parse_filter(whitelist);
-    let blacklist_f = parse_filter(blacklist);
+    let whitelist_f = parse_filter(cfg.whitelist.as_deref());
+    let blacklist_f = parse_filter(cfg.blacklist.as_deref());
 
-    let walker = if ignore_gitignore {
-        WalkBuilder::new(dir).standard_filters(false).build()
+    let mut builder = WalkBuilder::new(&cfg.dir);
+    if cfg.ignore_gitignore {
+        builder.standard_filters(false);
     } else {
-        WalkBuilder::new(dir).require_git(false).build()
-    };
+        builder.require_git(false);
+    }
+
+    if !cfg.globs.is_empty() || cfg.glob_file.is_some() {
+        let overrides = build_overrides(&cfg.dir, &cfg.globs, cfg.glob_file.as_deref())?;
+        builder.overrides(overrides);
+    }
+
+    let walker = builder.build();
 
     for result in walker {
         let entry = result?;
@@ -175,7 +237,7 @@ fn process_directory<W: Write>(
                 }
             }
 
-            output_file_to_markdown(path, trim, out)?;
+            output_file_to_markdown(path, cfg.trim, out)?;
         }
     }
 
